@@ -1,0 +1,52 @@
+<nav class="navbar navbar-expand navbar-light bg-white shadow-sm fixed-top" style="margin-left: var(--sidebar-width);">
+    <div class="container-fluid">
+        <!-- Navbar Search -->
+        <form class="d-none d-md-inline-block form-inline ms-auto">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Buscar..." aria-label="Search">
+                <button class="btn btn-primary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+
+        <!-- Navbar Items -->
+        <ul class="navbar-nav ms-auto">
+            <!-- Notifications -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAlerts" role="button" 
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge bg-danger">3</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAlerts">
+                    <li><a class="dropdown-item" href="#">Nueva reservación</a></li>
+                    <li><a class="dropdown-item" href="#">Check-out pendiente</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#">Ver todas las notificaciones</a></li>
+                </ul>
+            </li>
+
+            <!-- User Information -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownUser" role="button" 
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="me-2 d-none d-lg-inline text-gray-600 small">{{ current_user.username }}</span>
+                    <i class="fas fa-user-circle fa-fw"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-user fa-sm fa-fw me-2"></i>Perfil</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-cogs fa-sm fa-fw me-2"></i>Configuración</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{{ url_for('auth.logout') }}" method="post" class="d-inline w-100">
+                            <button type="submit" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt fa-sm fa-fw me-2"></i>Cerrar Sesión
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</nav>

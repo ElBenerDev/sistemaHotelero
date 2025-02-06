@@ -1,0 +1,208 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Calendario de Reservaciones{% endblock %}
+
+{% block extra_css %}
+<style>
+.calendar-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    margin-bottom: 20px;
+}
+
+#calendar {
+    height: calc(100vh - 350px);
+}
+
+.fc {
+    max-width: 100%;
+}
+
+.fc-event {
+    cursor: pointer;
+    margin: 2px 0;
+    padding: 2px 4px;
+}
+
+.filters-container {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.legend-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Calendario de Reservaciones</h1>
+        <a href="{{ url_for('reservations.add') }}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Nueva Reservación
+        </a>
+    </div>
+
+    <div class="filters-container">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="room-filter">Filtrar por Habitación:</label>
+                <select id="room-filter" class="form-select">
+                    <option value="">Todas las habitaciones</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.id }}">{{ room.number }} - {{ room.type.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="status-filter">Estado:</label>
+                <select id="status-filter" class="form-select">
+                    <option value="">Todos los estados</option>
+                    <option value="PENDING">Pendiente</option>
+                    <option value="CONFIRMED">Confirmada</option>
+                    <option value="CHECKED_IN">Check-in realizado</option>
+                    <option value="CHECKED_OUT">Check-out realizado</option>
+                    <option value="CANCELLED">Cancelada</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="legend-container mt-3">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffc107;"></div>
+                <span>Pendiente</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #0d6efd;"></div>
+                <span>Confirmada</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #198754;"></div>
+                <span>Check-in</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #6c757d;"></div>
+                <span>Check-out</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #dc3545;"></div>
+                <span>Cancelada</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="calendar-container">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Modal para detalles de reservación -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de la Reservación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Habitación:</strong> <span id="modal-room"></span></p>
+                        <p><strong>Huésped:</strong> <span id="modal-guest"></span></p>
+                        <p><strong>Estado:</strong> <span id="modal-status"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Check-in:</strong> <span id="modal-checkin"></span></p>
+                        <p><strong>Check-out:</strong> <span id="modal-checkout"></span></p>
+                        <p><strong>Precio Total:</strong> <span id="modal-price"></span></p>
+                    </div>
+                </div>
+                <p><strong>Notas:</strong> <span id="modal-notes"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <a href="#" id="modal-edit" class="btn btn-primary">Editar</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        locale: 'es',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        navLinks: true,
+        editable: false,
+        dayMaxEvents: true,
+        events: function(info, successCallback, failureCallback) {
+            var roomId = document.getElementById('room-filter').value;
+            var status = document.getElementById('status-filter').value;
+            
+            fetch(`/calendar/events?start=${info.startStr}&end=${info.endStr}&room_id=${roomId}&status=${status}`)
+                .then(response => response.json())
+                .then(data => successCallback(data))
+                .catch(error => {
+                    console.error('Error:', error);
+                    failureCallback(error);
+                });
+        },
+        eventClick: function(info) {
+            document.getElementById('modal-room').textContent = info.event.extendedProps.room_number;
+            document.getElementById('modal-guest').textContent = info.event.extendedProps.guest_name;
+            document.getElementById('modal-status').textContent = info.event.extendedProps.status;
+            document.getElementById('modal-checkin').textContent = new Date(info.event.start).toLocaleString();
+            document.getElementById('modal-checkout').textContent = new Date(info.event.end).toLocaleString();
+            document.getElementById('modal-price').textContent = info.event.extendedProps.total_price;
+            document.getElementById('modal-notes').textContent = info.event.extendedProps.notes || 'Sin notas';
+            document.getElementById('modal-edit').href = `/reservations/${info.event.id}/edit`;
+            eventModal.show();
+        }
+    });
+
+    calendar.render();
+
+    // Actualizar calendario cuando cambien los filtros
+    document.getElementById('room-filter').addEventListener('change', function() {
+        calendar.refetchEvents();
+    });
+
+    document.getElementById('status-filter').addEventListener('change', function() {
+        calendar.refetchEvents();
+    });
+});
+</script>
+{% endblock %}

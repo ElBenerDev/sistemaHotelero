@@ -1,0 +1,103 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Reservaciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Reservaciones</h1>
+        <a href="{{ url_for('reservations.add') }}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Nueva Reservación
+        </a>
+    </div>
+
+    <!-- Reservations List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Lista de Reservaciones</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Habitación</th>
+                            <th>Huésped</th>
+                            <th>Check-in</th>
+                            <th>Check-out</th>
+                            <th>Estado</th>
+                            <th>Precio Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in reservations %}
+                        <tr>
+                            <td>{{ reservation.id }}</td>
+                            <td>{{ reservation.room.number }}</td>
+                            <td>{{ reservation.guest.full_name }}</td>
+                            <td>{{ reservation.check_in.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ reservation.check_out.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge {% if reservation.status.name == 'PENDING' %}bg-warning
+                                                  {% elif reservation.status.name == 'CONFIRMED' %}bg-primary
+                                                  {% elif reservation.status.name == 'CHECKED_IN' %}bg-success
+                                                  {% elif reservation.status.name == 'CHECKED_OUT' %}bg-secondary
+                                                  {% else %}bg-danger{% endif %}">
+                                    {{ reservation.status.value }}
+                                </span>
+                            </td>
+                            <td>${{ "%.2f"|format(reservation.total_price) }}</td>
+                            <td>
+                                <a href="{{ url_for('reservations.edit', id=reservation.id) }}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="deleteReservation({{ reservation.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar esta reservación?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteReservation(id) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    document.getElementById('deleteForm').action = `/reservations/${id}/delete`;
+    modal.show();
+}
+</script>
+{% endblock %}

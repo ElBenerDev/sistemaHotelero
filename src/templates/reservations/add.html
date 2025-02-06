@@ -1,0 +1,120 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Nueva Reservación{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Nueva Reservación</h1>
+        <a href="{{ url_for('reservations.index') }}" class="d-none d-sm-inline-block btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Volver
+        </a>
+    </div>
+
+    <!-- Reservation Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Detalles de la Reservación</h6>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="guest_id" class="form-label">Huésped</label>
+                        <select name="guest_id" id="guest_id" class="form-control" required>
+                            <option value="">Seleccione un huésped</option>
+                            {% for guest in guests %}
+                            <option value="{{ guest.id }}">{{ guest.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="room_id" class="form-label">Habitación</label>
+                        <select name="room_id" id="room_id" class="form-control" required>
+                            <option value="">Seleccione una habitación</option>
+                            {% for room in rooms %}
+                            <option value="{{ room.id }}">{{ room.number }} - {{ room.type.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="check_in" class="form-label">Check-in</label>
+                        <input type="datetime-local" class="form-control" id="check_in" name="check_in" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="check_out" class="form-label">Check-out</label>
+                        <input type="datetime-local" class="form-control" id="check_out" name="check_out" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="status" class="form-label">Estado</label>
+                        <select name="status" id="status" class="form-control" required>
+                            {% for status in statuses %}
+                            <option value="{{ status.name }}">{{ status.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="total_price" class="form-label">Precio Total</label>
+                        <input type="number" step="0.01" class="form-control" id="total_price" name="total_price" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notas</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                </div>
+                <div class="text-end">
+                    <a href="{{ url_for('reservations.index') }}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar Reservación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar valores mínimos para check-in y check-out
+    const now = new Date();
+    const checkIn = document.getElementById('check_in');
+    const checkOut = document.getElementById('check_out');
+    
+    // Formatear fecha actual para datetime-local
+    const nowFormatted = now.toISOString().slice(0, 16);
+    checkIn.min = nowFormatted;
+    checkIn.value = nowFormatted;
+    
+    // Check-out mínimo es una hora después del check-in
+    checkIn.addEventListener('change', function() {
+        const checkInDate = new Date(this.value);
+        const minCheckOut = new Date(checkInDate.getTime() + (24 * 60 * 60 * 1000)); // +1 día
+        checkOut.min = minCheckOut.toISOString().slice(0, 16);
+        if (new Date(checkOut.value) < minCheckOut) {
+            checkOut.value = minCheckOut.toISOString().slice(0, 16);
+        }
+    });
+    
+    // Calcular precio total cuando cambia la habitación o las fechas
+    const roomSelect = document.getElementById('room_id');
+    const totalPrice = document.getElementById('total_price');
+    
+    function calculateTotalPrice() {
+        const room = rooms.find(r => r.id === parseInt(roomSelect.value));
+        if (room && checkIn.value && checkOut.value) {
+            const days = Math.ceil((new Date(checkOut.value) - new Date(checkIn.value)) / (1000 * 60 * 60 * 24));
+            totalPrice.value = (room.price * days).toFixed(2);
+        }
+    }
+    
+    roomSelect.addEventListener('change', calculateTotalPrice);
+    checkIn.addEventListener('change', calculateTotalPrice);
+    checkOut.addEventListener('change', calculateTotalPrice);
+});
+</script>
+{% endblock %}
