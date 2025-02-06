@@ -1,0 +1,180 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Detalles del Huésped{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Detalles del Huésped</h1>
+        <div>
+            <a href="{{ url_for('guests.edit', id=guest.id) }}" class="btn btn-warning shadow-sm">
+                <i class="fas fa-edit fa-sm"></i> Editar
+            </a>
+            <button onclick="confirmDelete({{ guest.id }})" class="btn btn-danger shadow-sm">
+                <i class="fas fa-trash fa-sm"></i> Eliminar
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información Personal -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Información Personal</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th class="bg-light" width="35%">Nombre Completo</th>
+                                <td>{{ guest.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Email</th>
+                                <td>{{ guest.email }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Teléfono</th>
+                                <td>{{ guest.phone }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Tipo de Identificación</th>
+                                <td>{{ guest.identification_type }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Número de Identificación</th>
+                                <td>{{ guest.identification_number }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Contacto -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Información de Contacto</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th class="bg-light" width="35%">Dirección</th>
+                                <td>{{ guest.address or 'No especificada' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Ciudad</th>
+                                <td>{{ guest.city or 'No especificada' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">País</th>
+                                <td>{{ guest.country or 'No especificado' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Fecha de Registro</th>
+                                <td>{{ guest.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Última Actualización</th>
+                                <td>{{ guest.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Reservaciones -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Historial de Reservaciones</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Habitación</th>
+                            <th>Check-in</th>
+                            <th>Check-out</th>
+                            <th>Estado</th>
+                            <th>Precio Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in guest.reservations %}
+                        <tr>
+                            <td>{{ reservation.id }}</td>
+                            <td>{{ reservation.room.number }}</td>
+                            <td>{{ reservation.check_in.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ reservation.check_out.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <span class="badge {% if reservation.status.value == 'CONFIRMED' %}bg-primary
+                                                  {% elif reservation.status.value == 'CHECKED_IN' %}bg-success
+                                                  {% elif reservation.status.value == 'CHECKED_OUT' %}bg-secondary
+                                                  {% elif reservation.status.value == 'CANCELLED' %}bg-danger
+                                                  {% else %}bg-warning{% endif %}">
+                                    {{ reservation.status.value }}
+                                </span>
+                            </td>
+                            <td>${{ "%.2f"|format(reservation.total_price) }}</td>
+                            <td>
+                                <a href="{{ url_for('reservations.view', id=reservation.id) }}" 
+                                   class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No hay reservaciones registradas</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar este huésped?</p>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Esta acción no se puede deshacer y también eliminará todas las reservaciones asociadas.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('guests.delete', id=guest.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(id) {
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}

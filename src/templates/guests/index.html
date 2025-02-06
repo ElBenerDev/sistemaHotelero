@@ -1,74 +1,136 @@
 {% extends "layouts/base.html" %}
 
+{% block title %}Huéspedes{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Huéspedes</h1>
-        <a href="#" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
-            <i class="fas fa-plus fa-sm text-white-50"></i> Nuevo Huésped
+        <a href="{{ url_for('guests.add') }}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Agregar Huésped
         </a>
     </div>
 
-    <!-- Guests Table -->
+    <!-- Search and Filter -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h6 class="m-0 font-weight-bold text-primary">Lista de Huéspedes</h6>
-                </div>
-                <div class="col-auto">
+            <form class="row g-3 align-items-center" method="GET">
+                <div class="col-auto flex-grow-1">
                     <div class="input-group">
-                        <input type="text" class="form-control" placeholder="Buscar huésped...">
-                        <button class="btn btn-primary" type="button">
+                        <input type="text" class="form-control" name="search" placeholder="Buscar huésped..." value="{{ search }}">
+                        <button class="btn btn-primary" type="submit">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered" width="100%" cellspacing="0">
-                    <thead>
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
                         <tr>
                             <th>ID</th>
                             <th>Nombre</th>
                             <th>Email</th>
                             <th>Teléfono</th>
-                            <th>Estado</th>
+                            <th>Ciudad</th>
+                            <th>País</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for guest in guests %}
+                        {% for guest in guests.items %}
                         <tr>
                             <td>{{ guest.id }}</td>
-                            <td>{{ guest.name }}</td>
+                            <td>{{ guest.full_name }}</td>
                             <td>{{ guest.email }}</td>
                             <td>{{ guest.phone }}</td>
+                            <td>{{ guest.city }}</td>
+                            <td>{{ guest.country }}</td>
                             <td>
-                                <span class="badge {% if guest.status == 'Check-in' %}bg-success{% else %}bg-warning{% endif %}">
-                                    {{ guest.status }}
-                                </span>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('guests.view', id=guest.id) }}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('guests.edit', id=guest.id) }}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-danger btn-sm" 
+                                            onclick="confirmDelete({{ guest.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
-                            <td>
-                                <a href="#" class="btn btn-info btn-sm">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="#" class="btn btn-warning btn-sm">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="#" class="btn btn-danger btn-sm">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No se encontraron huéspedes</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            {% if guests.pages > 1 %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {{ 'disabled' if not guests.has_prev }}">
+                        <a class="page-link" href="{{ url_for('guests.index', page=guests.prev_num, search=search) }}">Anterior</a>
+                    </li>
+                    {% for page_num in guests.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {{ 'active' if page_num == guests.page }}">
+                                <a class="page-link" href="{{ url_for('guests.index', page=page_num, search=search) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not guests.has_next }}">
+                        <a class="page-link" href="{{ url_for('guests.index', page=guests.next_num, search=search) }}">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Está seguro de que desea eliminar este huésped?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(id) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const deleteForm = document.getElementById('deleteForm');
+    deleteForm.action = `/guests/${id}/delete`;
+    modal.show();
+}
+</script>
 {% endblock %}
