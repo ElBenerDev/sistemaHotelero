@@ -10,21 +10,21 @@ import logging
 import traceback
 from datetime import datetime
 
+APP_DIR = os.path.abspath(os.path.dirname(__file__))
+DB_DIR = os.path.join(APP_DIR, 'instance')
+LOG_DIR = os.path.join(APP_DIR, 'logs')
+
 def setup_logging():
     """Configurar el sistema de logs"""
-    from config import Config
+    os.makedirs(LOG_DIR, exist_ok=True)
     
-    # Asegurarse de que el directorio de logs existe
-    os.makedirs(Config.LOG_DIR, exist_ok=True)
-    
-    log_file = os.path.join(Config.LOG_DIR, 'sistema.log')
+    log_file = os.path.join(LOG_DIR, 'sistema.log')
     logging.basicConfig(
         filename=log_file,
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Añadir logging a consola también
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     formatter = logging.Formatter('%(levelname)s - %(message)s')
@@ -33,53 +33,31 @@ def setup_logging():
     
     return logging.getLogger('setup')
 
-def init_notifications(logger, app, admin_user):
-    """Inicializar las notificaciones del sistema"""
+def verify_dependencies():
+    """Verificar y instalar dependencias necesarias"""
     try:
-        with app.app_context():
-            logger.info("Verificando notificaciones iniciales...")
-            
-            # Verificar si ya existen notificaciones
-            if Notification.query.count() == 0:
-                logger.info("Creando notificaciones iniciales...")
-                current_time = datetime.utcnow()
-                
-                notifications = [
-                    Notification(
-                        user_id=admin_user.id,
-                        type=NotificationType.SYSTEM,
-                        message="¡Bienvenido al Sistema Hotelero!",
-                        link="/dashboard",
-                        created_at=current_time
-                    ),
-                    Notification(
-                        user_id=admin_user.id,
-                        type=NotificationType.SYSTEM,
-                        message="Sistema de notificaciones activado",
-                        link="/notifications",
-                        created_at=current_time
-                    ),
-                    Notification(
-                        user_id=admin_user.id,
-                        type=NotificationType.MAINTENANCE,
-                        message="Configuración inicial completada",
-                        link="/settings",
-                        created_at=current_time
-                    )
-                ]
-                
-                db.session.add_all(notifications)
-                db.session.commit()
-                logger.info("Notificaciones iniciales creadas exitosamente")
-            else:
-                logger.info("Las notificaciones ya están inicializadas")
-            
-            return True
-            
+        import pkg_resources
+        import subprocess
+
+        with open('requirements.txt') as f:
+            requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+
+        installed = {pkg.key: pkg.version for pkg in pkg_resources.working_set}
+        missing = []
+
+        for requirement in requirements:
+            package = requirement.split('==')[0]
+            if package.lower() not in installed:
+                missing.append(requirement)
+
+        if missing:
+            print("Instalando dependencias faltantes...")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install'] + missing)
+            print("Dependencias instaladas correctamente")
+        
+        return True
     except Exception as e:
-        logger.error(f"Error inicializando notificaciones: {str(e)}")
-        logger.error("Traceback completo:")
-        logger.error(traceback.format_exc())
+        print(f"Error verificando dependencias: {str(e)}")
         return False
 
 def init_database(logger):
@@ -89,9 +67,7 @@ def init_database(logger):
         app = create_app()
         
         logger.info("Verificando directorio de la base de datos...")
-        from config import Config
-        db_dir = os.path.dirname(Config.SQLALCHEMY_DATABASE_URI.replace('sqlite:///', ''))
-        os.makedirs(db_dir, exist_ok=True)
+        os.makedirs(DB_DIR, exist_ok=True)
         
         logger.info("Inicializando contexto de la aplicación...")
         with app.app_context():
@@ -111,73 +87,57 @@ def init_database(logger):
                 logger.info("Usuario administrador creado exitosamente")
             
             # Inicializar notificaciones
-            logger.info("Inicializando sistema de notificaciones...")
-            if not init_notifications(logger, app, admin):
-                logger.error("Error inicializando notificaciones")
-                return False
+            if Notification.query.count() == 0:
+                logger.info("Creando notificaciones iniciales...")
+                notifications = [
+                    Notification(
+                        user_id=admin.id,
+                        type=NotificationType.SYSTEM,
+                        message="¡Bienvenido al Sistema Hotelero!",
+                        link="/dashboard"
+                    ),
+                    Notification(
+                        user_id=admin.id,
+                        type=NotificationType.SYSTEM,
+                        message="Sistema inicializado correctamente",
+                        link="/notifications"
+                    )
+                ]
+                db.session.add_all(notifications)
+                db.session.commit()
+                logger.info("Notificaciones iniciales creadas")
             
-            logger.info("Base de datos inicializada correctamente")
             return True
     except Exception as e:
         logger.error(f"Error inicializando la base de datos: {str(e)}")
-        logger.error("Traceback completo:")
         logger.error(traceback.format_exc())
         return False
 
-def check_dependencies():
-    """Verificar que todas las dependencias estén instaladas"""
-    required = [
-        'flask',
-        'flask-sqlalchemy',
-        'flask-login',
-        'werkzeug',
-        'click',
-        'jinja2',
-        'itsdangerous',
-        'flask-migrate'
-        # python-dotenv removido de la lista ya que está instalado
+def create_directories():
+    """Crear directorios necesarios"""
+    directories = [
+        DB_DIR,
+        LOG_DIR,
+        os.path.join(APP_DIR, 'src', 'static', 'uploads'),
+        os.path.join(APP_DIR, 'src', 'static', 'temp')
     ]
-    missing = []
     
-    for package in required:
+    for directory in directories:
         try:
-            __import__(package.replace('-', '_'))
-        except ImportError:
-            missing.append(package)
-    
-    return missing
-
-def verify_directories():
-    """Verificar y crear directorios necesarios"""
-    try:
-        from config import Config
-        
-        # Lista de directorios a verificar
-        directories = [
-            Config.APP_DIR,
-            Config.LOG_DIR,
-            os.path.dirname(Config.SQLALCHEMY_DATABASE_URI.replace('sqlite:///', ''))
-        ]
-        
-        for directory in directories:
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-                print(f"Directorio creado: {directory}")
-            else:
-                print(f"Directorio existente: {directory}")
-                
-        return True
-    except Exception as e:
-        print(f"Error verificando directorios: {str(e)}")
-        return False
+            os.makedirs(directory, exist_ok=True)
+            print(f"Directorio creado/verificado: {directory}")
+        except Exception as e:
+            print(f"Error creando directorio {directory}: {str(e)}")
+            return False
+    return True
 
 def main():
     """Función principal de configuración"""
-    print("Iniciando configuración del sistema...")
+    print("Iniciando configuración del Sistema Hotelero...")
     
-    # Verificar directorios
-    print("\nVerificando directorios...")
-    if not verify_directories():
+    # Crear directorios necesarios
+    print("\nCreando directorios necesarios...")
+    if not create_directories():
         print("Error: No se pudieron crear los directorios necesarios")
         return False
     
@@ -187,11 +147,8 @@ def main():
     
     # Verificar dependencias
     print("\nVerificando dependencias...")
-    missing_deps = check_dependencies()
-    if missing_deps:
-        logger.error(f"Faltan dependencias: {', '.join(missing_deps)}")
-        print(f"Error: Faltan las siguientes dependencias: {', '.join(missing_deps)}")
-        print("Por favor, ejecute: pip install " + " ".join(missing_deps))
+    if not verify_dependencies():
+        logger.error("Error verificando dependencias")
         return False
     
     # Inicializar base de datos
