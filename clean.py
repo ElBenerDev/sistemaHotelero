@@ -3,38 +3,41 @@ import shutil
 from pathlib import Path
 import sys
 
+def remove_redundant_files():
+    """Elimina archivos redundantes del proyecto"""
+    redundant_files = [
+        'create_tables.py',
+        'migrations.py',
+        'manage.py',
+        'setup.py',
+        'run.py'
+    ]
+    
+    for file in redundant_files:
+        if os.path.exists(file):
+            try:
+                os.remove(file)
+                print(f"✓ Eliminado archivo redundante: {file}")
+            except Exception as e:
+                print(f"✗ Error eliminando {file}: {e}")
+
 def clean_project():
     """Limpia todos los archivos temporales y generados del proyecto"""
     print("🧹 Iniciando limpieza profunda del proyecto...")
 
-    # Primero, eliminar todo el contenido de venv si existe
-    venv_path = Path('venv')
-    if venv_path.exists():
-        choice = input("⚠️  ¿Deseas eliminar completamente el entorno virtual (venv)? [y/N]: ").lower()
-        if choice == 'y':
-            try:
-                shutil.rmtree(venv_path)
-                print("✓ Entorno virtual eliminado completamente")
-            except Exception as e:
-                print(f"✗ Error eliminando venv: {e}")
-        else:
-            print("Manteniendo el entorno virtual...")
+    # Eliminar archivos redundantes
+    print("\n🗑️  Eliminando archivos redundantes...")
+    remove_redundant_files()
 
-    # Directorios a eliminar completamente
+    # Directorios a eliminar
     dirs_to_remove = [
         '__pycache__',
         '.pytest_cache',
-        '.coverage',
         'build',
         'dist',
-        '.eggs',
         '*.egg-info',
-        '.tox',
         '.mypy_cache',
-        '.dmypy.json',
-        '.pyre',
-        'instance',
-        'logs'
+        'instance'
     ]
 
     # Extensiones de archivos a eliminar
@@ -43,22 +46,17 @@ def clean_project():
         '*.pyo',
         '*.pyd',
         '*.so',
-        '*.dylib',
-        '*.dll',
         '*.db',
         '*.sqlite',
         '*.sqlite3',
         '*.log',
         '*.pot',
-        '*.py[cod]',
         '*$py.class',
         '*.spec',
         '.DS_Store',
         'Thumbs.db',
-        '.env',
         '*.bak',
         '*.swp',
-        '*.swo',
         '*~'
     ]
 
@@ -66,7 +64,7 @@ def clean_project():
     removed_dirs = 0
     removed_files = 0
 
-    # Eliminar directorios
+    # Eliminar directorios temporales
     print("\n🗑️  Eliminando directorios temporales...")
     for pattern in dirs_to_remove:
         for path in root_dir.rglob(pattern):
@@ -78,7 +76,7 @@ def clean_project():
                 except Exception as e:
                     print(f"✗ Error eliminando {path}: {e}")
 
-    # Eliminar archivos
+    # Eliminar archivos temporales
     print("\n🗑️  Eliminando archivos temporales...")
     for pattern in file_patterns:
         for path in root_dir.rglob(pattern):
@@ -90,26 +88,26 @@ def clean_project():
                 except Exception as e:
                     print(f"✗ Error eliminando {path}: {e}")
 
-    # Limpiar git
-    print("\n🧹 Limpiando Git...")
-    try:
-        os.system('git clean -fdX')  # Elimina archivos no rastreados e ignorados
-        print("✓ Git limpiado exitosamente")
-    except Exception as e:
-        print(f"✗ Error limpiando Git: {e}")
-
     print("\n✨ Limpieza completada!")
     print(f"  - Directorios eliminados: {removed_dirs}")
     print(f"  - Archivos eliminados: {removed_files}")
 
+    # Verificar estructura final
+    print("\n📁 Estructura final del proyecto:")
+    os.system('tree /F /A' if os.name == 'nt' else 'tree -I "venv|__pycache__"')
+
 if __name__ == "__main__":
     try:
-        clean_project()
-        print("\n✅ Proyecto listo para commit!")
-        print("\nPara completar la limpieza, ejecuta estos comandos:")
-        print("1. git rm -r --cached .")
-        print("2. git add .")
-        print("3. git commit -m 'Clean repo and remove cached files'")
+        response = input("⚠️  Esta operación eliminará archivos redundantes y temporales. ¿Continuar? [y/N]: ").lower()
+        if response == 'y':
+            clean_project()
+            print("\n✅ Proyecto listo para commit!")
+            print("\nPara finalizar la limpieza, ejecuta:")
+            print("1. git rm -r --cached .")
+            print("2. git add .")
+            print("3. git commit -m 'Clean and organize project structure'")
+        else:
+            print("Operación cancelada.")
     except Exception as e:
         print(f"\n❌ Error durante la limpieza: {e}")
         sys.exit(1)
