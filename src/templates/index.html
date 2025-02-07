@@ -1,58 +1,106 @@
 {% extends "layouts/base.html" %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <!-- Dashboard Stats -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Dashboard</h1>
+    
+    <!-- Tarjetas de Estadísticas -->
+    <div class="row mt-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Habitaciones Disponibles</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">15</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-bed fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h4>{{ stats.total_rooms }}</h4>
+                    <div>Habitaciones Totales</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white mb-4">
                 <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Reservaciones Activas</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">5</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+                    <h4>{{ stats.available_rooms }}</h4>
+                    <div>Habitaciones Disponibles</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-white mb-4">
+                <div class="card-body">
+                    <h4>{{ stats.active_reservations }}</h4>
+                    <div>Reservaciones Activas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <h4>${{ "%.2f"|format(stats.monthly_revenue) }}</h4>
+                    <div>Ingresos del Mes</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Reservations -->
-    <div class="row">
+    <!-- Barras de Estado -->
+    <div class="row mt-4">
         <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Últimas Reservaciones</h6>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    Estado de Habitaciones
                 </div>
                 <div class="card-body">
+                    {% if stats.total_rooms > 0 %}
+                    <div class="progress">
+                        <div class="progress-bar bg-success" 
+                             role="progressbar" 
+                             style="width: {{ stats.availability_rate|round }}%"
+                             aria-valuenow="{{ stats.availability_rate|round }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ stats.availability_rate|round }}% Disponibles
+                        </div>
+                        <div class="progress-bar bg-danger" 
+                             role="progressbar" 
+                             style="width: {{ stats.occupancy_rate|round }}%"
+                             aria-valuenow="{{ stats.occupancy_rate|round }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ stats.occupancy_rate|round }}% Ocupadas
+                        </div>
+                        <div class="progress-bar bg-warning" 
+                             role="progressbar" 
+                             style="width: {{ stats.maintenance_rate|round }}%"
+                             aria-valuenow="{{ stats.maintenance_rate|round }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ stats.maintenance_rate|round }}% Mantenimiento
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay habitaciones registradas en el sistema.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimas Reservaciones -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i>
+                    Últimas Reservaciones
+                </div>
+                <div class="card-body">
+                    {% if recent_reservations %}
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table table-bordered">
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Huésped</th>
                                     <th>Habitación</th>
                                     <th>Check-in</th>
                                     <th>Check-out</th>
@@ -60,17 +108,23 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% for reservation in recent_reservations %}
                                 <tr>
-                                    <td>001</td>
-                                    <td>Juan Pérez</td>
-                                    <td>101</td>
-                                    <td>2024-02-06</td>
-                                    <td>2024-02-08</td>
-                                    <td><span class="badge bg-success">Activa</span></td>
+                                    <td>{{ reservation.id }}</td>
+                                    <td>{{ reservation.room.number }}</td>
+                                    <td>{{ reservation.check_in.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ reservation.check_out.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ reservation.status.value }}</td>
                                 </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay reservaciones recientes.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required
-from src.models.guest import Guest
+from src.models.guest import Guest, DocumentType
 from src.extensions import db
 from datetime import datetime
 
@@ -9,88 +9,61 @@ bp = Blueprint('guests', __name__, url_prefix='/guests')
 @bp.route('/')
 @login_required
 def index():
-    # Obtener parámetros de búsqueda y ordenamiento
-    search = request.args.get('search', '')
-    sort_by = request.args.get('sort', 'id')
-    order = request.args.get('order', 'asc')
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
+    guests = Guest.query.order_by(Guest.first_name, Guest.last_name).all()
+    return render_template('guests/index.html', guests=guests)
 
-    # Construir query base
-    query = Guest.query
-
-    # Aplicar búsqueda si existe
-    if search:
-        query = query.filter(
-            (Guest.first_name.ilike(f'%{search}%')) |
-            (Guest.last_name.ilike(f'%{search}%')) |
-            (Guest.email.ilike(f'%{search}%')) |
-            (Guest.phone.ilike(f'%{search}%'))
-        )
-
-    # Aplicar ordenamiento
-    if sort_by and order:
-        sort_column = getattr(Guest, sort_by)
-        if order == 'desc':
-            sort_column = sort_column.desc()
-        query = query.order_by(sort_column)
-
-    # Paginar resultados
-    guests = query.paginate(page=page, per_page=per_page)
-    return render_template('guests/index.html', guests=guests, search=search)
-
-@bp.route('/add', methods=['GET', 'POST'])
+@bp.route('/new', methods=['GET', 'POST'])
 @login_required
-def add():
+def new():
     if request.method == 'POST':
         try:
             guest = Guest(
                 first_name=request.form['first_name'],
                 last_name=request.form['last_name'],
-                email=request.form['email'],
-                phone=request.form['phone'],
-                address=request.form['address'],
-                city=request.form['city'],
-                country=request.form['country'],
-                identification_type=request.form['identification_type'],
-                identification_number=request.form['identification_number']
+                id_type=request.form['id_type'],
+                id_number=request.form['id_number'],
+                email=request.form['email'] if request.form['email'] else None,
+                phone=request.form['phone'] if request.form['phone'] else None,
+                address=request.form['address'] if request.form['address'] else None
             )
+            
             db.session.add(guest)
             db.session.commit()
-            flash('Huésped agregado correctamente.', 'success')
+            
+            flash('Huésped registrado exitosamente', 'success')
             return redirect(url_for('guests.index'))
+            
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al agregar el huésped: {str(e)}', 'danger')
-            return redirect(url_for('guests.add'))
-
-    return render_template('guests/add.html')
+            flash(f'Error al registrar el huésped: {str(e)}', 'danger')
+    
+    return render_template('guests/new.html', document_types=DocumentType)
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit(id):
     guest = Guest.query.get_or_404(id)
+    
     if request.method == 'POST':
         try:
             guest.first_name = request.form['first_name']
             guest.last_name = request.form['last_name']
-            guest.email = request.form['email']
-            guest.phone = request.form['phone']
-            guest.address = request.form['address']
-            guest.city = request.form['city']
-            guest.country = request.form['country']
-            guest.identification_type = request.form['identification_type']
-            guest.identification_number = request.form['identification_number']
+            guest.id_type = request.form['id_type']
+            guest.id_number = request.form['id_number']
+            guest.email = request.form['email'] if request.form['email'] else None
+            guest.phone = request.form['phone'] if request.form['phone'] else None
+            guest.address = request.form['address'] if request.form['address'] else None
             guest.updated_at = datetime.utcnow()
             
             db.session.commit()
-            flash('Huésped actualizado correctamente.', 'success')
+            flash('Huésped actualizado exitosamente', 'success')
             return redirect(url_for('guests.index'))
+            
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar el huésped: {str(e)}', 'danger')
     
-    return render_template('guests/edit.html', guest=guest)
+    return render_template('guests/edit.html', guest=guest, document_types=DocumentType)
 
 @bp.route('/<int:id>')
 @login_required
@@ -105,9 +78,24 @@ def delete(id):
     try:
         db.session.delete(guest)
         db.session.commit()
-        flash('Huésped eliminado correctamente.', 'success')
+        flash('Huésped eliminado exitosamente', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error al eliminar el huésped: {str(e)}', 'danger')
     
     return redirect(url_for('guests.index'))
+
+@bp.route('/search')
+@login_required
+def search():
+    term = request.args.get('term', '')
+    guests = Guest.query.filter(
+        (Guest.first_name.ilike(f'%{term}%')) |
+        (Guest.last_name.ilike(f'%{term}%')) |
+        (Guest.id_number.ilike(f'%{term}%'))
+    ).limit(10).all()
+    
+    return jsonify([{
+        'id': guest.id,
+        'text': f'{guest.full_name} - {guest.id_type.value}: {guest.id_number}'
+    } for guest in guests])

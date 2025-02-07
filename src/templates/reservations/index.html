@@ -7,28 +7,25 @@
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Reservaciones</h1>
-        <a href="{{ url_for('reservations.add') }}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
-            <i class="fas fa-plus fa-sm text-white-50"></i> Nueva Reservación
+        <a href="{{ url_for('reservations.new') }}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm"></i> Nueva Reservación
         </a>
     </div>
 
-    <!-- Reservations List -->
+    <!-- Lista de Reservaciones -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Lista de Reservaciones</h6>
-        </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <table class="table table-bordered" id="reservationsTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Habitación</th>
                             <th>Huésped</th>
+                            <th>Habitación</th>
                             <th>Check-in</th>
                             <th>Check-out</th>
                             <th>Estado</th>
-                            <th>Precio Total</th>
+                            <th>Total</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -36,29 +33,37 @@
                         {% for reservation in reservations %}
                         <tr>
                             <td>{{ reservation.id }}</td>
-                            <td>{{ reservation.room.number }}</td>
                             <td>{{ reservation.guest.full_name }}</td>
+                            <td>{{ reservation.room.number }}</td>
                             <td>{{ reservation.check_in.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ reservation.check_out.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>
-                                <span class="badge {% if reservation.status.name == 'PENDING' %}bg-warning
-                                                  {% elif reservation.status.name == 'CONFIRMED' %}bg-primary
-                                                  {% elif reservation.status.name == 'CHECKED_IN' %}bg-success
-                                                  {% elif reservation.status.name == 'CHECKED_OUT' %}bg-secondary
-                                                  {% else %}bg-danger{% endif %}">
+                                <span class="badge rounded-pill bg-{{ reservation.status.value|lower }}">
                                     {{ reservation.status.value }}
                                 </span>
                             </td>
-                            <td>${{ "%.2f"|format(reservation.total_price) }}</td>
+                            <td>${{ "%.2f"|format(reservation.total_price or 0) }}</td>
                             <td>
-                                <a href="{{ url_for('reservations.edit', id=reservation.id) }}" 
-                                   class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-danger"
-                                        onclick="deleteReservation({{ reservation.id }})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('reservations.view', id=reservation.id) }}" 
+                                       class="btn btn-info btn-sm" 
+                                       title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('reservations.edit', id=reservation.id) }}" 
+                                       class="btn btn-primary btn-sm" 
+                                       title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if reservation.status.value == 'Pendiente' %}
+                                    <button type="button" 
+                                            onclick="confirmCancel({{ reservation.id }})" 
+                                            class="btn btn-danger btn-sm" 
+                                            title="Cancelar">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -69,22 +74,25 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
+<!-- Modal de Confirmación de Cancelación -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <h5 class="modal-title">Confirmar Cancelación</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>¿Estás seguro de que deseas eliminar esta reservación?</p>
-                <p class="text-danger">Esta acción no se puede deshacer.</p>
+                <p>¿Está seguro de que desea cancelar esta reservación?</p>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Esta acción no se puede deshacer.
+                </p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form id="deleteForm" method="POST">
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, mantener</button>
+                <form id="cancelForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Sí, cancelar</button>
                 </form>
             </div>
         </div>
@@ -92,12 +100,50 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap5.min.css" rel="stylesheet">
+<style>
+.bg-pendiente { background-color: #ffc107; }
+.bg-confirmada { background-color: #0d6efd; }
+.bg-check-in { background-color: #198754; }
+.bg-check-out { background-color: #6c757d; }
+.bg-cancelada { background-color: #dc3545; }
+</style>
+{% endblock %}
+
 {% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.9/js/responsive.bootstrap5.min.js"></script>
+
 <script>
-function deleteReservation(id) {
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    document.getElementById('deleteForm').action = `/reservations/${id}/delete`;
-    modal.show();
+function confirmCancel(reservationId) {
+    const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+    const cancelForm = document.getElementById('cancelForm');
+    cancelForm.action = `/reservations/${reservationId}/cancel`;
+    cancelModal.show();
 }
+
+$(document).ready(function() {
+    $('#reservationsTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+        },
+        "pageLength": 10,
+        "ordering": true,
+        "responsive": true,
+        "order": [[0, "desc"]], // Ordenar por ID de forma descendente
+        "columnDefs": [
+            {
+                "targets": -1, // Última columna (acciones)
+                "orderable": false
+            }
+        ]
+    });
+});
 </script>
 {% endblock %}

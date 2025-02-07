@@ -1,104 +1,99 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from src.models.room import Room, RoomType, RoomStatus
-from src.forms.room import RoomForm
-from src import db
+from src.extensions import db
 
 bp = Blueprint('rooms', __name__, url_prefix='/rooms')
 
 @bp.route('/')
 @login_required
 def index():
-    # Obtener el filtro de estado si existe
-    status_filter = request.args.get('status')
-    type_filter = request.args.get('type')
-    floor_filter = request.args.get('floor')
+    # Obtener parámetros de filtro
+    floor = request.args.get('floor', type=int)
+    room_type = request.args.get('type')
+    status = request.args.get('status')
     
-    # Crear la consulta base
+    # Query base
     query = Room.query
     
     # Aplicar filtros si existen
-    if status_filter:
-        query = query.filter_by(status=RoomStatus[status_filter])
-    if type_filter:
-        query = query.filter_by(type=RoomType[type_filter])
-    if floor_filter:
-        query = query.filter_by(floor=floor_filter)
+    if floor is not None:
+        query = query.filter(Room.floor == floor)
+    if room_type:
+        query = query.filter(Room.type == RoomType[room_type])
+    if status:
+        query = query.filter(Room.status == RoomStatus[status])
     
     # Ordenar por número de habitación
     rooms = query.order_by(Room.number).all()
     
-    # Obtener valores únicos para los filtros
+    # Obtener lista de pisos únicos para el filtro
     floors = sorted(set(room.floor for room in Room.query.all()))
     
-    return render_template('rooms/index.html', 
-                         rooms=rooms,
-                         room_types=RoomType,
-                         room_statuses=RoomStatus,
-                         floors=floors,
-                         current_status=status_filter,
-                         current_type=type_filter,
-                         current_floor=floor_filter)
+    return render_template(
+        'rooms/index.html',
+        rooms=rooms,
+        floors=floors,
+        room_types=RoomType,
+        room_statuses=RoomStatus,
+        selected_floor=floor,
+        selected_type=room_type,
+        selected_status=status
+    )
 
 @bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add():
-    form = RoomForm()
-    if form.validate_on_submit():
-        room = Room(
-            number=form.number.data,
-            type=RoomType[form.type.data],
-            status=RoomStatus[form.status.data],
-            price=form.price.data,
-            capacity=form.capacity.data,
-            description=form.description.data,
-            floor=form.floor.data
-        )
+    if request.method == 'POST':
         try:
+            room = Room(
+                number=request.form['number'],
+                floor=int(request.form['floor']),
+                type=RoomType[request.form['type']],
+                status=RoomStatus[request.form['status']],
+                price_per_night=float(request.form['price_per_night']),
+                capacity=int(request.form['capacity']),
+                description=request.form['description']
+            )
             db.session.add(room)
             db.session.commit()
-            flash('Habitación creada exitosamente.', 'success')
+            flash('Habitación agregada correctamente.', 'success')
             return redirect(url_for('rooms.index'))
         except Exception as e:
             db.session.rollback()
-            flash('Error al crear la habitación. El número puede estar duplicado.', 'danger')
-    return render_template('rooms/add.html', form=form)
+            flash(f'Error al agregar la habitación: {str(e)}', 'danger')
+            return redirect(url_for('rooms.add'))
+
+    return render_template('rooms/add.html', room_types=RoomType, room_statuses=RoomStatus)
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit(id):
     room = Room.query.get_or_404(id)
-    # Para GET request, pre-poblar el formulario con los valores actuales
-    if request.method == 'GET':
-        form = RoomForm()
-        form.number.data = room.number
-        form.type.data = room.type.name
-        form.status.data = room.status.name
-        form.price.data = room.price
-        form.capacity.data = room.capacity
-        form.description.data = room.description
-        form.floor.data = room.floor
-    else:
-        form = RoomForm()
-    
-    if form.validate_on_submit():
+    if request.method == 'POST':
         try:
-            room.number = form.number.data
-            room.type = RoomType[form.type.data]
-            room.status = RoomStatus[form.status.data]
-            room.price = form.price.data
-            room.capacity = form.capacity.data
-            room.description = form.description.data
-            room.floor = form.floor.data
+            room.number = request.form['number']
+            room.floor = int(request.form['floor'])
+            room.type = RoomType[request.form['type']]
+            room.status = RoomStatus[request.form['status']]
+            room.price_per_night = float(request.form['price_per_night'])
+            room.capacity = int(request.form['capacity'])
+            room.description = request.form['description']
             
             db.session.commit()
-            flash('Habitación actualizada exitosamente.', 'success')
+            flash('Habitación actualizada correctamente.', 'success')
             return redirect(url_for('rooms.index'))
         except Exception as e:
             db.session.rollback()
-            flash('Error al actualizar la habitación.', 'danger')
+            flash(f'Error al actualizar la habitación: {str(e)}', 'danger')
     
-    return render_template('rooms/edit.html', form=form, room=room)
+    return render_template('rooms/edit.html', room=room, room_types=RoomType, room_statuses=RoomStatus)
+
+@bp.route('/<int:id>')
+@login_required
+def view(id):
+    room = Room.query.get_or_404(id)
+    return render_template('rooms/view.html', room=room)
 
 @bp.route('/<int:id>/delete', methods=['POST'])
 @login_required
@@ -107,8 +102,9 @@ def delete(id):
     try:
         db.session.delete(room)
         db.session.commit()
-        flash('Habitación eliminada exitosamente.', 'success')
+        flash('Habitación eliminada correctamente.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('Error al eliminar la habitación. Puede que tenga reservaciones asociadas.', 'danger')
+        flash(f'Error al eliminar la habitación: {str(e)}', 'danger')
+    
     return redirect(url_for('rooms.index'))

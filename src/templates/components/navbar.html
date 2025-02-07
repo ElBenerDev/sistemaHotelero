@@ -17,13 +17,28 @@
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAlerts" role="button" 
                    data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-bell"></i>
-                    <span class="badge bg-danger">3</span>
+                    <span class="badge bg-danger" id="notification-count"></span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAlerts">
-                    <li><a class="dropdown-item" href="#">Nueva reservación</a></li>
-                    <li><a class="dropdown-item" href="#">Check-out pendiente</a></li>
+                <ul class="dropdown-menu dropdown-menu-end notification-menu" 
+                    aria-labelledby="navbarDropdownAlerts"
+                    style="width: 300px; max-height: 400px; overflow-y: auto;">
+                    <div class="notification-header border-bottom p-2">
+                        <h6 class="m-0">Notificaciones</h6>
+                    </div>
+                    <div id="notification-list">
+                        <!-- Las notificaciones se cargarán aquí dinámicamente -->
+                    </div>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#">Ver todas las notificaciones</a></li>
+                    <li>
+                        <div class="d-flex justify-content-between p-2">
+                            <a class="text-primary" href="{{ url_for('notifications.index') }}">
+                                Ver todas
+                            </a>
+                            <a href="#" id="mark-all-read" class="text-primary">
+                                Marcar todas como leídas
+                            </a>
+                        </div>
+                    </li>
                 </ul>
             </li>
 
@@ -50,3 +65,107 @@
         </ul>
     </div>
 </nav>
+
+<!-- Agregar esto al final del archivo -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function updateNotifications() {
+        fetch('/notifications/unread')
+            .then(response => response.json())
+            .then(data => {
+                const count = data.count;
+                const notificationCount = document.getElementById('notification-count');
+                const notificationList = document.getElementById('notification-list');
+
+                // Actualizar contador
+                if (count > 0) {
+                    notificationCount.textContent = count;
+                    notificationCount.style.display = 'inline';
+                } else {
+                    notificationCount.style.display = 'none';
+                }
+
+                // Actualizar lista de notificaciones
+                notificationList.innerHTML = '';
+                if (data.notifications.length > 0) {
+                    data.notifications.forEach(notification => {
+                        const item = document.createElement('li');
+                        item.innerHTML = `
+                            <a class="dropdown-item notification-item" href="${notification.link}">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div class="icon-circle bg-primary text-white">
+                                            <i class="fas fa-${getNotificationIcon(notification.type)}"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="small text-muted">${notification.time_ago}</div>
+                                        <span class="${notification.is_read ? 'text-muted' : 'fw-bold'}">${notification.message}</span>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                        notificationList.appendChild(item);
+                    });
+                } else {
+                    const item = document.createElement('li');
+                    item.innerHTML = `
+                        <div class="dropdown-item text-center text-muted">
+                            No hay notificaciones nuevas
+                        </div>
+                    `;
+                    notificationList.appendChild(item);
+                }
+            });
+    }
+
+    function getNotificationIcon(type) {
+        const icons = {
+            'Reservación': 'calendar-check',
+            'Check-in': 'door-open',
+            'Check-out': 'door-closed',
+            'Mantenimiento': 'tools',
+            'Limpieza': 'broom',
+            'Sistema': 'cog'
+        };
+        return icons[type] || 'bell';
+    }
+
+    // Marcar todas como leídas
+    document.getElementById('mark-all-read').addEventListener('click', function(e) {
+        e.preventDefault();
+        fetch('/notifications/read-all', {
+            method: 'POST'
+        }).then(() => {
+            updateNotifications();
+        });
+    });
+
+    // Actualizar notificaciones cada minuto
+    updateNotifications();
+    setInterval(updateNotifications, 60000);
+});
+</script>
+
+<style>
+.icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-menu {
+    padding: 0;
+}
+
+.notification-header {
+    background-color: #f8f9fa;
+}
+</style>

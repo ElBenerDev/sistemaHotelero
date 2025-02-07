@@ -1,40 +1,42 @@
 from flask import Flask
-from config import Config
-from src.extensions import db, login_manager
-from src.routes import reservations
-from src.routes import reports
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_login import LoginManager
+from .extensions import db
+import os
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
+    
+    # Configuración
+    app.config['SECRET_KEY'] = 'tu_clave_secreta'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hotel.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Inicializar extensiones con la aplicación
+    # Inicializar extensiones
     db.init_app(app)
+    migrate = Migrate(app, db)
+
+    # Configurar Flask-Login
+    login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
 
-    with app.app_context():
-        # Importar modelos
-        from src.models.user import User
-        from src.models.room import Room
-        from src.models.guest import Guest
-        from src.models.reservation import Reservation
+    # Importar modelos para que Flask-Migrate los detecte
+    from .models.notification import Notification, NotificationType
+    from .models.user import User
+    # Importar otros modelos aquí...
 
-        @login_manager.user_loader
-        def load_user(user_id):
-            return User.query.get(int(user_id))
+    # Registrar blueprints
+    from .routes import auth, rooms, guests, reservations, notifications
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(rooms.bp)
+    app.register_blueprint(guests.bp)
+    app.register_blueprint(reservations.bp)
+    app.register_blueprint(notifications.bp)
 
-        # Importar y registrar blueprints
-        from src.routes import main, auth, rooms, guests, reservations, calendar, reports
-        app.register_blueprint(main.bp)
-        app.register_blueprint(auth.bp)
-        app.register_blueprint(rooms.bp)
-        app.register_blueprint(guests.bp)
-        app.register_blueprint(reservations.bp)
-        app.register_blueprint(calendar.bp)
-        app.register_blueprint(reports.bp)  # Agregada esta línea
-
-        # Crear todas las tablas
-        db.create_all()
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
 
     return app

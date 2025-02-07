@@ -2,6 +2,7 @@ from src import create_app, db
 from src.models.user import User
 from werkzeug.security import generate_password_hash
 
+
 def init_database():
     app = create_app()
     with app.app_context():

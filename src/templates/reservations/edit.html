@@ -1,0 +1,219 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Editar Reservación{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Editar Reservación #{{ reservation.id }}</h1>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="guest_select">Huésped *</label>
+                            <select class="form-control select2" 
+                                    id="guest_select" 
+                                    name="guest_id" 
+                                    required>
+                                <option value="{{ reservation.guest.id }}" selected>
+                                    {{ reservation.guest.full_name }} - {{ reservation.guest.id_type.value }}: {{ reservation.guest.id_number }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="room_id">Habitación *</label>
+                            <select class="form-control" 
+                                    id="room_id" 
+                                    name="room_id" 
+                                    required>
+                                {% for room in rooms %}
+                                <option value="{{ room.id }}" 
+                                        data-price="{{ room.price_per_night }}"
+                                        {% if room.id == reservation.room_id %}selected{% endif %}>
+                                    {{ room.number }} - {{ room.type.value }} 
+                                    (${{ "%.2f"|format(room.price_per_night) }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="check_in">Fecha de Entrada *</label>
+                            <input type="datetime-local" 
+                                   class="form-control flatpickr" 
+                                   id="check_in" 
+                                   name="check_in" 
+                                   value="{{ reservation.check_in.strftime('%Y-%m-%d %H:%M') }}"
+                                   required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="check_out">Fecha de Salida *</label>
+                            <input type="datetime-local" 
+                                   class="form-control flatpickr" 
+                                   id="check_out" 
+                                   name="check_out" 
+                                   value="{{ reservation.check_out.strftime('%Y-%m-%d %H:%M') }}"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="status">Estado *</label>
+                            <select class="form-control" 
+                                    id="status" 
+                                    name="status" 
+                                    required>
+                                {% for status in ReservationStatus %}
+                                <option value="{{ status.name }}"
+                                        {% if status == reservation.status %}selected{% endif %}>
+                                    {{ status.value }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="total_price">Total</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="total_price" 
+                                       value="{{ "%.2f"|format(reservation.total_price) }}"
+                                       readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="notes">Notas</label>
+                    <textarea class="form-control" 
+                              id="notes" 
+                              name="notes" 
+                              rows="3">{{ reservation.notes or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <a href="{{ url_for('reservations.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Inicializar Select2 para búsqueda de huéspedes
+    $('#guest_select').select2({
+        ajax: {
+            url: '{{ url_for("guests.search") }}',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term
+                };
+            },
+            processResults: function(data) {
+                return {
+                    results: data
+                };
+            },
+            cache: true
+        },
+        placeholder: 'Buscar huésped...',
+        minimumInputLength: 2,
+        language: "es"
+    });
+
+    // Inicializar Flatpickr para las fechas
+    const flatpickrConfig = {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        minDate: "today",
+        locale: "es"
+    };
+
+    const checkInPicker = flatpickr("#check_in", {
+        ...flatpickrConfig,
+        defaultDate: "{{ reservation.check_in.strftime('%Y-%m-%d %H:%M') }}",
+        onChange: function(selectedDates, dateStr) {
+            checkOutPicker.set('minDate', dateStr);
+            calculateTotal();
+        }
+    });
+
+    const checkOutPicker = flatpickr("#check_out", {
+        ...flatpickrConfig,
+        defaultDate: "{{ reservation.check_out.strftime('%Y-%m-%d %H:%M') }}",
+        onChange: function() {
+            calculateTotal();
+        }
+    });
+
+    // Calcular total
+    function calculateTotal() {
+        const checkIn = new Date($("#check_in").val());
+        const checkOut = new Date($("#check_out").val());
+        const roomPrice = parseFloat($("#room_id option:selected").data('price') || 0);
+
+        if (checkIn && checkOut && roomPrice) {
+            const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+            if (nights > 0) {
+                const total = nights * roomPrice;
+                $("#total_price").val(total.toFixed(2));
+            } else {
+                $("#total_price").val('0.00');
+            }
+        }
+    }
+
+    // Recalcular total cuando cambie la habitación
+    $("#room_id").change(calculateTotal);
+
+    // Estado de la reservación
+    $("#status").change(function() {
+        const status = $(this).val();
+        if (status === 'CANCELLED') {
+            if (!confirm('¿Está seguro de cambiar el estado a Cancelada? Esta acción no se puede deshacer.')) {
+                $(this).val('{{ reservation.status.name }}');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

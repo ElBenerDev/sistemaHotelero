@@ -1,0 +1,110 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Ver Reservación{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Detalles de Reservación #{{ reservation.id }}</h1>
+        <div>
+            <a href="{{ url_for('reservations.edit', id=reservation.id) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a href="{{ url_for('reservations.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Información de la Reservación</h6>
+                    <span class="badge bg-{{ reservation.status.name.lower() }}">
+                        {{ reservation.status.value }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h5>Huésped</h5>
+                            <p>{{ reservation.guest.full_name }}</p>
+                            <p>{{ reservation.guest.email or 'Sin email' }}</p>
+                            <p>{{ reservation.guest.phone or 'Sin teléfono' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Habitación</h5>
+                            <p>Número: {{ reservation.room.number }}</p>
+                            <p>Tipo: {{ reservation.room.type.value }}</p>
+                            <p>Precio por noche: ${{ "%.2f"|format(reservation.room.price_per_night) }}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h5>Check-in</h5>
+                            <p>{{ reservation.check_in.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Check-out</h5>
+                            <p>{{ reservation.check_out.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <h5>Notas</h5>
+                            <p>{{ reservation.notes or 'Sin notas' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Resumen</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h5>Duración</h5>
+                        <p>{{ reservation.nights }} noche(s)</p>
+                    </div>
+                    <div class="mb-3">
+                        <h5>Total</h5>
+                        <h3>${{ "%.2f"|format(reservation.total_price) }}</h3>
+                    </div>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        {% if reservation.status == ReservationStatus.PENDING %}
+                        <form action="{{ url_for('reservations.cancel', id=reservation.id) }}" method="POST"
+                              onsubmit="return confirm('¿Está seguro de cancelar esta reservación?')">
+                            <button type="submit" class="btn btn-danger btn-block">
+                                <i class="fas fa-times"></i> Cancelar Reservación
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if reservation.status == ReservationStatus.CONFIRMED %}
+                        <form action="{{ url_for('reservations.check_in', id=reservation.id) }}" method="POST">
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fas fa-check"></i> Realizar Check-in
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if reservation.status == ReservationStatus.CHECKED_IN %}
+                        <form action="{{ url_for('reservations.check_out', id=reservation.id) }}" method="POST"
+                              onsubmit="return confirm('¿Está seguro de realizar el check-out?')">
+                            <button type="submit" class="btn btn-info btn-block">
+                                <i class="fas fa-sign-out-alt"></i> Realizar Check-out
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Editar' if guest else 'Agregar' }} Huésped{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ 'Editar' if guest else 'Agregar' }} Huésped</h1>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- Información Personal -->
+                        <h5 class="mb-3">Información Personal</h5>
+                        
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                   value="{{ guest.first_name if guest else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                   value="{{ guest.last_name if guest else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ guest.email if guest else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                   value="{{ guest.phone if guest else '' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <!-- Información de Identificación -->
+                        <h5 class="mb-3">Información de Identificación</h5>
+
+                        <div class="mb-3">
+                            <label for="id_type" class="form-label">Tipo de Identificación</label>
+                            <select class="form-select" id="id_type" name="id_type" required>
+                                <option value="DNI" {{ 'selected' if guest and guest.id_type == 'DNI' }}>DNI</option>
+                                <option value="Pasaporte" {{ 'selected' if guest and guest.id_type == 'Pasaporte' }}>Pasaporte</option>
+                                <option value="Carnet de Extranjería" {{ 'selected' if guest and guest.id_type == 'Carnet de Extranjería' }}>Carnet de Extranjería</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_number" class="form-label">Número de Identificación</label>
+                            <input type="text" class="form-control" id="id_number" name="id_number"
+                                   value="{{ guest.id_number if guest else '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Dirección</label>
+                            <textarea class="form-control" id="address" name="address" 
+                                      rows="3">{{ guest.address if guest else '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notas Adicionales</label>
+                            <textarea class="form-control" id="notes" name="notes" 
+                                      rows="3">{{ guest.notes if guest else '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-3">
+                    <a href="{{ url_for('guests.index') }}" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'Guardar Cambios' if guest else 'Agregar Huésped' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Aquí puedes agregar validaciones de formulario personalizadas si lo necesitas
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        // Ejemplo de validación
+        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
+        
+        if (!email && !phone) {
+            event.preventDefault();
+            alert('Debe proporcionar al menos un método de contacto (email o teléfono)');
+        }
+    });
+});
+</script>
+{% endblock %}

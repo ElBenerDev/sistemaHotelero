@@ -1,0 +1,97 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Notificaciones</h1>
+        {% if notifications %}
+        <button id="markAllAsRead" class="btn btn-primary">
+            <i class="fas fa-check-double"></i> Marcar todas como leídas
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            {% if notifications %}
+                <div class="list-group">
+                    {% for notification in notifications %}
+                    <div class="list-group-item list-group-item-action {% if not notification.is_read %}active{% endif %}">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <h5 class="mb-1">
+                                <i class="fas fa-{{ notification.type.value|lower }}-alt"></i>
+                                {{ notification.type.value }}
+                            </h5>
+                            <small>{{ notification.time_ago }}</small>
+                        </div>
+                        <p class="mb-1">{{ notification.message }}</p>
+                        {% if notification.link %}
+                        <div class="mt-2">
+                            <a href="{{ notification.link }}" class="btn btn-sm btn-primary">Ver detalles</a>
+                            {% if not notification.is_read %}
+                            <button class="btn btn-sm btn-success mark-as-read" 
+                                    data-notification-id="{{ notification.id }}">
+                                Marcar como leída
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bell-slash fa-3x mb-3 text-muted"></i>
+                    <p class="text-muted">No hay notificaciones</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Marcar una notificación como leída
+    $('.mark-as-read').click(function() {
+        const notificationId = $(this).data('notification-id');
+        const $notification = $(this).closest('.list-group-item');
+        
+        $.ajax({
+            url: `/notifications/${notificationId}/read`,
+            method: 'POST',
+            success: function() {
+                $notification.removeClass('active');
+                updateNotificationCount();
+            }
+        });
+    });
+
+    // Marcar todas como leídas
+    $('#markAllAsRead').click(function() {
+        $.ajax({
+            url: '/notifications/read-all',
+            method: 'POST',
+            success: function() {
+                $('.list-group-item').removeClass('active');
+                updateNotificationCount();
+            }
+        });
+    });
+
+    function updateNotificationCount() {
+        $.get('/notifications/unread', function(data) {
+            const count = data.count;
+            if (count > 0) {
+                $('#notification-count').text(count).show();
+            } else {
+                $('#notification-count').hide();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
