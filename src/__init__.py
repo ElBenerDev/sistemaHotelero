@@ -10,7 +10,12 @@ def create_app():
     
     # Configuración básica
     app.config['SECRET_KEY'] = 'tu_clave_secreta'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hotel.db'
+    
+    
+    # Crear la ruta absoluta para la base de datos
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    db_path = os.path.join(basedir, 'hotel.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
