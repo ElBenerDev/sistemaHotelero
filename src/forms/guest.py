@@ -8,7 +8,7 @@ class GuestForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email(), Length(max=120)])
     phone = TelField('Teléfono', validators=[Length(max=20)])
     document_type = SelectField('Tipo de Documento', choices=[
-        ('dni', 'DNI'),
+        ('ine', 'INE'),
         ('passport', 'Pasaporte'),
         ('other', 'Otro')
     ])

@@ -56,7 +56,7 @@
                                 <div class="mb-3">
                                     <label for="identification_type" class="form-label">Tipo de Identificación</label>
                                     <select class="form-select" id="identification_type" name="identification_type" required>
-                                        <option value="DNI" {{ 'selected' if guest and guest.identification_type == 'DNI' else '' }}>DNI</option>
+                                        <option value="INE" {{ 'selected' if guest and guest.identification_type == 'INE' }}>INE</option>
                                         <option value="PASSPORT" {{ 'selected' if guest and guest.identification_type == 'PASSPORT' else '' }}>Pasaporte</option>
                                         <option value="OTHER" {{ 'selected' if guest and guest.identification_type == 'OTHER' else '' }}>Otro</option>
                                     </select>
