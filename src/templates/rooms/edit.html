@@ -1,5 +1,7 @@
 {% extends "layouts/base.html" %}
 
+{% block title %}Editar Habitación{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <!-- Page Heading -->
@@ -17,94 +19,71 @@
         </div>
         <div class="card-body">
             <form method="POST">
-                {{ form.hidden_tag() }}
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form.number.label(class="form-label") }}
-                        {{ form.number(class="form-control") }}
-                        {% if form.number.errors %}
-                            {% for error in form.number.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="number" class="form-label">Número de Habitación</label>
+                            <input type="text" class="form-control" id="number" name="number" 
+                                   value="{{ room.number }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="floor" class="form-label">Piso</label>
+                            <input type="number" class="form-control" id="floor" name="floor"
+                                   value="{{ room.floor }}" required min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Tipo de Habitación</label>
+                            <select class="form-select" id="type" name="type" required>
+                                {% for type in room_types %}
+                                <option value="{{ type.name }}" 
+                                        {{ 'selected' if room.type == type else '' }}>
+                                    {{ type.value }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        {{ form.type.label(class="form-label") }}
-                        {{ form.type(class="form-control") }}
-                        {% if form.type.errors %}
-                            {% for error in form.type.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form.status.label(class="form-label") }}
-                        {{ form.status(class="form-control") }}
-                        {% if form.status.errors %}
-                            {% for error in form.status.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        {{ form.price.label(class="form-label") }}
-                        {{ form.price(class="form-control") }}
-                        {% if form.price.errors %}
-                            {% for error in form.price.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form.capacity.label(class="form-label") }}
-                        {{ form.capacity(class="form-control") }}
-                        {% if form.capacity.errors %}
-                            {% for error in form.capacity.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        {{ form.floor.label(class="form-label") }}
-                        {{ form.floor(class="form-control") }}
-                        {% if form.floor.errors %}
-                            {% for error in form.floor.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Estado</label>
+                            <select class="form-select" id="status" name="status" required>
+                                {% for status in room_statuses %}
+                                <option value="{{ status.name }}"
+                                        {{ 'selected' if room.status == status else '' }}>
+                                    {{ status.value }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="price_per_night" class="form-label">Precio por Noche</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="price_per_night" 
+                                       name="price_per_night" step="0.01" min="0"
+                                       value="{{ room.price_per_night }}" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="capacity" class="form-label">Capacidad</label>
+                            <input type="number" class="form-control" id="capacity" name="capacity"
+                                   value="{{ room.capacity }}" required min="1">
+                        </div>
                     </div>
                 </div>
                 <div class="mb-3">
-                    {{ form.description.label(class="form-label") }}
-                    {{ form.description(class="form-control", rows="3") }}
-                    {% if form.description.errors %}
-                        {% for error in form.description.errors %}
-                            <div class="invalid-feedback d-block">{{ error }}</div>
-                        {% endfor %}
-                    {% endif %}
+                    <label for="description" class="form-label">Descripción</label>
+                    <textarea class="form-control" id="description" name="description" 
+                              rows="3">{{ room.description }}</textarea>
                 </div>
                 <div class="text-end">
                     <a href="{{ url_for('rooms.index') }}" class="btn btn-secondary">Cancelar</a>
-                    {{ form.submit(class="btn btn-primary") }}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Configurar valores iniciales del formulario si es necesario
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(e) {
-        // Aquí puedes agregar validaciones adicionales si lo deseas
-    });
-});
-</script>
 {% endblock %}
