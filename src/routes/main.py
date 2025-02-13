@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from src.models.room import Room, RoomStatus
 from src.models.reservation import Reservation, ReservationStatus
@@ -6,6 +6,7 @@ from src.models.guest import Guest
 from datetime import datetime, timedelta
 from src.extensions import db 
 from sqlalchemy import func
+from src.models.hotel import Hotel
 
 bp = Blueprint('main', __name__)
 
@@ -70,3 +71,44 @@ def index():
         stats=stats,
         recent_reservations=recent_reservations
     )
+    
+@bp.route('/registrar', methods=['POST'])
+@login_required
+def registrar_huesped():
+    try:
+        nuevo_huesped = Hotel(
+            nombre=request.form['nombre'],
+            documento=request.form['documento'],
+            habitacion=int(request.form['habitacion']),
+            fecha_entrada=datetime.strptime(request.form['fecha_entrada'], '%Y-%m-%d %H:%M:%S')
+        )
+        
+        db.session.add(nuevo_huesped)
+        db.session.commit()
+        
+        flash('Huésped registrado exitosamente', 'success')
+        return redirect(url_for('main.index'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al registrar el huésped: {str(e)}', 'danger')
+        return redirect(url_for('main.index'))
+
+@bp.route('/huespedes')
+@login_required
+def listar_huespedes():
+    huespedes = Hotel.query.all()
+    return render_template('huespedes.html', huespedes=huespedes)
+
+@bp.route('/checkout/<int:id>', methods=['POST'])
+@login_required
+def checkout(id):
+    try:
+        huesped = Hotel.query.get_or_404(id)
+        huesped.fecha_salida = datetime.utcnow()
+        db.session.commit()
+        flash('Checkout realizado exitosamente', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al realizar el checkout: {str(e)}', 'danger')
+    return redirect(url_for('main.listar_huespedes'))

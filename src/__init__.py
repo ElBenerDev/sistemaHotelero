@@ -13,6 +13,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hotel.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+
     # Inicializar extensiones
     db.init_app(app)
     migrate = Migrate(app, db)
@@ -28,6 +29,7 @@ def create_app():
     from .models.room import Room
     from .models.reservation import Reservation
     from .models.notification import Notification
+    from .models.hotel import Hotel
 
     @login_manager.user_loader
     def load_user(user_id):
