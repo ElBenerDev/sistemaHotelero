@@ -17,14 +17,16 @@ def index():
 def new():
     if request.method == 'POST':
         try:
+            # Solo nombre, apellido y teléfono son requeridos
             guest = Guest(
                 first_name=request.form['first_name'],
                 last_name=request.form['last_name'],
-                id_type=request.form['id_type'] if request.form['id_type'] else None,
-                id_number=request.form['id_number'] if request.form['id_number'] else None,
-                email=request.form['email'] if request.form['email'] else None,
-                phone=request.form['phone'] if request.form['phone'] else None,
-                address=request.form['address'] if request.form['address'] else None
+                phone=request.form['phone'],
+                # Campos opcionales
+                id_type=request.form.get('id_type'),  # Usando .get() para campos opcionales
+                id_number=request.form.get('id_number'),
+                email=request.form.get('email'),
+                address=request.form.get('address')
             )
             
             db.session.add(guest)
@@ -46,13 +48,15 @@ def edit(id):
     
     if request.method == 'POST':
         try:
+            # Solo nombre, apellido y teléfono son requeridos
             guest.first_name = request.form['first_name']
             guest.last_name = request.form['last_name']
-            guest.id_type = request.form['id_type']
-            guest.id_number = request.form['id_number']
-            guest.email = request.form['email'] if request.form['email'] else None
-            guest.phone = request.form['phone'] if request.form['phone'] else None
-            guest.address = request.form['address'] if request.form['address'] else None
+            guest.phone = request.form['phone']
+            # Campos opcionales
+            guest.id_type = request.form.get('id_type')
+            guest.id_number = request.form.get('id_number')
+            guest.email = request.form.get('email')
+            guest.address = request.form.get('address')
             guest.updated_at = datetime.utcnow()
             
             db.session.commit()

@@ -1,0 +1,136 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Detalles de Habitación {{ room.number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Habitación {{ room.number }}</h1>
+        <div>
+            <a href="{{ url_for('rooms.edit', id=room.id) }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-edit fa-sm"></i> Editar
+            </a>
+            <a href="{{ url_for('rooms.index') }}" class="btn btn-secondary btn-sm ms-2">
+                <i class="fas fa-arrow-left fa-sm"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información Principal -->
+        <div class="col-xl-6 col-md-12 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Información Principal</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 40%">Número de Habitación</th>
+                                    <td>{{ room.number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Piso</th>
+                                    <td>{{ room.floor }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <td>{{ room.type.value }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Estado</th>
+                                    <td>
+                                        <span class="badge {% if room.status.name == 'AVAILABLE' %}bg-success
+                                                         {% elif room.status.name == 'OCCUPIED' %}bg-danger
+                                                         {% else %}bg-warning{% endif %}">
+                                            {{ room.status.value }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalles Adicionales -->
+        <div class="col-xl-6 col-md-12 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Detalles Adicionales</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 40%">Precio por Noche</th>
+                                    <td>${{ "%.2f"|format(room.price_per_night) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Capacidad</th>
+                                    <td>{{ room.capacity }} personas</td>
+                                </tr>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <td>{{ room.description or 'Sin descripción' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Reservaciones -->
+    {% if room.reservations %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Historial de Reservaciones</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Huésped</th>
+                            <th>Check-in</th>
+                            <th>Check-out</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in room.reservations %}
+                        <tr>
+                            <td>{{ reservation.guest.full_name }}</td>
+                            <td>{{ reservation.check_in.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ reservation.check_out.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge {% if reservation.status.name == 'CONFIRMED' %}bg-success
+                                                 {% elif reservation.status.name == 'CANCELLED' %}bg-danger
+                                                 {% else %}bg-warning{% endif %}">
+                                    {{ reservation.status.value }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('reservations.view', id=reservation.id) }}" 
+                                   class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
