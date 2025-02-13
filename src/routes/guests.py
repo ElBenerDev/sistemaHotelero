@@ -20,8 +20,8 @@ def new():
             guest = Guest(
                 first_name=request.form['first_name'],
                 last_name=request.form['last_name'],
-                id_type=request.form['id_type'],
-                id_number=request.form['id_number'],
+                id_type=request.form['id_type'] if request.form['id_type'] else None,
+                id_number=request.form['id_number'] if request.form['id_number'] else None,
                 email=request.form['email'] if request.form['email'] else None,
                 phone=request.form['phone'] if request.form['phone'] else None,
                 address=request.form['address'] if request.form['address'] else None

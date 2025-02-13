@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 
 class DocumentType(str, Enum):
-    DNI = 'DNI'
+    INE = 'INE'
     PASSPORT = 'Pasaporte'
     FOREIGN_ID = 'Carné de Extranjería'
     OTHER = 'Otro'
@@ -14,8 +14,8 @@ class Guest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    id_type = db.Column(db.Enum(DocumentType), nullable=False, default=DocumentType.DNI)
-    id_number = db.Column(db.String(20), unique=True, nullable=False)
+    id_type = db.Column(db.Enum(DocumentType), nullable=True)
+    id_number = db.Column(db.String(20), unique=True, nullable=True)
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
     address = db.Column(db.String(200))
